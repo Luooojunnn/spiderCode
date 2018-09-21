@@ -35,7 +35,7 @@ let imgInfo = {
 }
 
 /**
- * @description 请求当前页面信息
+ * 请求当前页面信息
  * @param {Object} pageInfo - 初始页信息
  * @param {string} pageInfo.hostname - 页域名地址
  * @param {string} pageInfo.path - 路径
