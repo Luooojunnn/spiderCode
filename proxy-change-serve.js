@@ -3,8 +3,6 @@ const url = require('url')
 const path = require('path')
 const fs = require('fs')
 
-// 一些额外的其他信息已补充在最后
-
 /**
  * 环境判断
 */
@@ -22,11 +20,15 @@ http.createServer((req, res) => {
     if (url.parse(req.url).pathname !== '/favicon.ico') {
       // 判断请求方式，请求参数
       let reqMethod = req.method === 'GET' ? 'GET' : 'POST'
-      if (url.parse(req.url, true).query) {
+      if (reqMethod === 'GET') {
         console.log(`接口名 ${url.parse(req.url, true).pathname}，采用 ${reqMethod} 请求方式，传递的参数是 ${JSON.stringify(url.parse(req.url, true).query)}`)
       } else {
+        let res = ''
         req.on('data', (reqData) => {
-          console.log(`接口名 ${url.parse(req.url, true).pathname}，采用 ${reqMethod} 请求方式，传递的参数是 ${reqData.toString('utf8')}`)
+          res += reqData
+        })
+        req.on('end', (reqData) => {
+          console.log(`接口名 ${url.parse(req.url, true).pathname}，采用 ${reqMethod} 请求方式，传递的参数是 ${res.toString('utf8')}`)
         })
       }
       // 寻址回值
@@ -58,10 +60,8 @@ http.createServer((req, res) => {
             method: reqMethod,
             headers: req.headers
           }, (data) => {
-            console.log(data)
             res.end(data)
           })
-          // res.end(data)
         }
       } else {
         res.writeHead(404)
@@ -86,7 +86,10 @@ http.createServer((req, res) => {
 */
 function HCLIENTFC ({ hostname, path = '/', method = 'GET', headers }, callback = () => { }) {
   let resData = ''
-  console.log(hostname, path, method, headers)
+  console.log('接口的信息参数：', hostname, path, method, headers)
+  /**
+   * 由于发送了header，其accept接受的数据类型可能和返回的数据类型不一致，所以可能导致接口超时，必要时，可去掉发送header
+  */
   const HCLIENT = http.request({
     hostname,
     path,
@@ -98,7 +101,7 @@ function HCLIENTFC ({ hostname, path = '/', method = 'GET', headers }, callback 
       resData += chunk
     })
     res.on('end', () => {
-      console.log('222', resData.toString())
+      console.log('接口返回结果是：', resData.toString())
       callback(resData)
       return resData.toString()
     })
@@ -109,23 +112,3 @@ function HCLIENTFC ({ hostname, path = '/', method = 'GET', headers }, callback 
   })
   HCLIENT.end()
 }
-
-
-/**
- * 1. 关于package.json 如何配置的？
- * - npm run apiserve ENV=dev 走本地mock数据，npm run apiserve ENV=online 走线上环境接口数据
- * 
- * 2. get、post 请求地址如何写？
- * - this.http..get("http://localhost:9000/navInfoApi") 前端项目起在8080端口，api服务起在9000端口，这样调取就能拿数据
- * 
- * 3. apiserve.json如何写的？
- * - {
-      "navInfoApi": {
-          "dev": "./mock-data/navInfo.json",
-          "online": "对应你线上的地址/navInfo"
-      }
-    }
-  *
-  * 4. 不足？
-  * - TODO: 不足之处在于，项目启动后，虽然可以根据dev或者是online进行数据源的切换，但是在network处看，都是localhost:9000，丢失了数据来源辨识度
-*/
